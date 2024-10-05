@@ -11,6 +11,7 @@ module PQ
           when 'Z' then ReadyForQuery
           when '1' then ParseComplete
           when '2' then BindComplete
+          when 't' then ParameterDescription
           when 'T' then RowDescription
           when 'A' then NotificationResponse
           when 'E' then ErrorResponse
@@ -206,6 +207,20 @@ module PQ
           pos, type_modifier = i32 pos, bytes
           pos, format = i16 pos, bytes
           Field.new(name, col_oid, table_oid, type_oid, type_size, type_modifier, format)
+        end
+      end
+    end
+
+    struct ParameterDescription < Frame
+      getter nfields : Int16
+      getter type_oids : Array(Int32)
+
+      def initialize(bytes)
+        pos = 0
+        pos, @nfields = i16 pos, bytes
+        @type_oids = Array(Int32).new(@nfields.to_i32) do
+          pos, type_oid = i32 pos, bytes
+          type_oid
         end
       end
     end

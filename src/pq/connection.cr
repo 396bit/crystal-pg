@@ -511,6 +511,13 @@ module PQ
       write_null
     end
 
+    def send_describe_statement_message
+      write_chr 'D'
+      write_i32 4 + 1 + 1
+      write_chr 'S'
+      write_null
+    end
+
     def send_execute_message
       write_chr 'E'
       write_i32 4 + 1 + 4

@@ -90,7 +90,7 @@ module PQ
       end
     end
 
-    def synchronize
+    def synchronize(&)
       @mutex.synchronize { yield }
     end
 
@@ -149,7 +149,7 @@ module PQ
       soc.flush
     end
 
-    def read_data_row
+    def read_data_row(&)
       size = read_i32
       ncols = read_i16
       row = Array(Slice(UInt8)?).new(ncols.to_i32) do
@@ -297,7 +297,7 @@ module PQ
       end
     end
 
-    struct SamlContext
+    struct SaslContext
       SCRAM_NAME      = "SCRAM-SHA-256"
       SCRAM_PLUS_NAME = "SCRAM-SHA-256-PLUS"
 
@@ -359,17 +359,17 @@ module PQ
 
     private def handle_auth_sasl(mechanism_list)
       mechs = String.new(mechanism_list).split(Char::ZERO)
-      cbind = if mechs.includes?(SamlContext::SCRAM_PLUS_NAME)
+      cbind = if mechs.includes?(SaslContext::SCRAM_PLUS_NAME)
                 check_auth_method!("scram-sha-256-plus")
                 true
-              elsif mechs.includes?(SamlContext::SCRAM_NAME)
+              elsif mechs.includes?(SaslContext::SCRAM_NAME)
                 check_auth_method!("scram-sha-256")
                 false
               else
                 raise ConnectionError.new("no known sasl mechanism in list: #{mechs.join(", ")}")
               end
 
-      ctx = SamlContext.new(@conninfo.password || "", cbind, soc)
+      ctx = SaslContext.new(@conninfo.password || "", cbind, soc)
 
       # send client-first-message
       write_chr 'p' # SASLInitialResponse
@@ -432,7 +432,7 @@ module PQ
       end
     end
 
-    def read_all_data_rows
+    def read_all_data_rows(&)
       type = soc.read_char
       loop do
         break unless type == 'D'
@@ -498,7 +498,7 @@ module PQ
       write_i16 nparams # number of params to follow
       params.each do |p|
         write_i32 p.size
-        p.slice.each { |byte| write_byte byte }
+        soc.write(p.slice)
       end
       write_i16 1 # number of following return types (1 means apply next for all)
       write_i16 result_format
